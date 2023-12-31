@@ -2,9 +2,7 @@ import numpy as np
 import math 
 import time 
 
-
 class DecissionStump:
-
 
      def __init__(self,idx,threshold = None,polarity=1,error=2,margin=0):
         self.threshold = threshold 
@@ -29,7 +27,6 @@ class DecissionStump:
 
         sorted_idx = np.argsort(X)
         original_idx = np.argsort(sorted_idx) 
-
         #Sorting the values in ascending order of features
         X = X[sorted_idx] 
         y = y[sorted_idx]
@@ -45,10 +42,8 @@ class DecissionStump:
 
             w_p_h = np.sum(w[(X>threshold) & (y == 1)])
             w_n_h = np.sum(w[(X>threshold) & (y == 0)])
-
             w_p_l = np.sum(w[(X<threshold) & (y == 1)])
             w_n_l = np.sum(w[(X<threshold) & (y == 0)])
-
 
             error_pos = w_p_l + w_n_h 
             error_neg = w_n_l + w_p_h 
@@ -70,9 +65,6 @@ class DecissionStump:
         return self.error,self.margin
     
 
-
-
-         
         
 def best_stump(X,y,w): 
 
@@ -83,18 +75,16 @@ def best_stump(X,y,w):
         best_feature = 0 
 
         for f in range(0,d):
-            
+        
             clf = DecissionStump(idx=f)
             error,margin = clf.train(X[f],y,w)
-          #  print("error in line 89 is : {}".format(error))
+
             if(error < best_error) or ((error == best_error) & (widest_margin < margin)):
                 best_error = error 
                 widest_margin = margin
                 best_clf = clf
                 best_feature = f
 
-        print("found threshold of iteration {}: {}".format(best_feature,best_clf.threshold))
-        print("Feature used: {}".format(best_feature))
         return best_clf 
 
 class AdaBoost:
@@ -107,8 +97,6 @@ class AdaBoost:
         N = len(labels)
         self.ht = np.empty(self.T,dtype=object) # For the weak learners
         self.alphas = np.empty(self.T-1) 
-        print("Shape of features: {} x {}".format(N,M))
-
         #len of negative and positive examples
         l = np.sum(labels==0)
         m = np.sum(labels==1)
@@ -125,10 +113,6 @@ class AdaBoost:
             clf = best_stump(X,labels,wt) 
             error = clf.error 
             yhat = clf.predict(X)
-
-            print("Clf's threshold: {}".format(clf.threshold))
-            print("Clf's error: {}".format(clf.error))
-            print("Clf's feature index : {}".format(clf.idx))
             alpha = np.log((1-error)/error)
             
             if(error == 0):
@@ -137,13 +121,7 @@ class AdaBoost:
             self.ht[t] = clf 
             self.alphas[t] = alpha 
 
-            print("Sum of the new weights before: {}".format(np.sum(wt)))
-            print("Clf error: {}".format(clf.error))
-            print("wt.shape: {}".format(wt.shape))
-            print("pred.shape: {}".format(clf.predict(X).shape))
-            print("labels.shape: {}".format(labels.shape))
             wt*= np.where(clf.predict(X)==labels, clf.error/(1-clf.error),1)
-            print("Sum of the new weights after: {}".format(np.sum(wt)))
 
     def predict(self,X): 
         ys = []
@@ -153,7 +131,6 @@ class AdaBoost:
         return (np.sum(ys,axis=0) >= 0.5*sum(self.alphas))
 
     def accuracy(self,predicted,true):
-        print("Predicted")
         correct = np.sum(predicted == true)
         total_samples = len(true)
         accuracy = correct / total_samples
