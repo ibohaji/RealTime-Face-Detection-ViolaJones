@@ -17,6 +17,7 @@ The Viola-Jones face detection algorithm is a widely recognized method for real-
 - [x] Project initialization
 - [x] Implement integral image computation
 - [x] Implement Haar-like feature extraction
+- [x] Implement the Adaboost feature-selection using decision stumps. 
 - [ ] Build the cascade classifier
 - [ ] Train the classifier on face and non-face data
 - [ ] Evaluate and fine-tune the model

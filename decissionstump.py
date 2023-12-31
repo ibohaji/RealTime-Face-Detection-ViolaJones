@@ -1,86 +1,163 @@
 import numpy as np
+import math 
+import time 
 
 
-class DecisionStump:
-    def __init__(self):
-        self.polarity = 1
-        self.threshold = None
-        self.error = float('inf')
+class DecissionStump:
 
-    def train(self, features, labels):
-        # Sort the data by feature values and get the sorted labels
-        sorted_indices = features.argsort()
-        sorted_features = features[sorted_indices]
-        sorted_labels = labels[sorted_indices]
 
-        # Initialize weights
-        n_samples = len(labels)
-        weight_positive = np.sum(labels == 1) / n_samples
-        weight_negative = np.sum(labels == 0) / n_samples
+     def __init__(self,idx,threshold = None,polarity=1,error=2,margin=0):
+        self.threshold = threshold 
+        self.polarity = polarity
+        self.error = error 
+        self.margin = margin
+        self.idx = idx 
 
-        # Initialize errors for positive and negative polarities
-        error_positive = weight_positive * np.sum(sorted_labels == 0)  # All positive, initially
-        error_negative = weight_negative * np.sum(sorted_labels == 1)  # All negative, initially
-
-        for i in range(1, n_samples):
-            # Update errors based on the current threshold
-            if sorted_labels[i-1] == 1:
-                error_positive += weight_positive
-                error_negative -= weight_negative
-            else:
-                error_positive -= weight_positive
-                error_negative += weight_negative
-
-            # Check if this threshold results in lower error
-            if i == n_samples - 1 or sorted_features[i] != sorted_features[i-1]:
-                if error_positive < self.error or error_negative < self.error:
-                    self.error = min(error_positive, error_negative)
-                    self.threshold = sorted_features[i]
-                    self.polarity = 1 if error_positive < error_negative else -1
+     def predict(self,X):
         
-        self.margin = np.abs(features - self.threshold)
+        observations = X[self.idx]
+        yhat = np.ones(X.shape)
 
-        return self.threshold,self.polarity,self.error,self.margin 
+        if self.polarity == 1: 
+            yhat = np.where(observations>self.threshold,1,0)
+        else: 
+            yhat = np.where(observations<self.threshold,1,0)
+
+        return yhat 
+
+     def train(self,X,y,w):
+
+        sorted_idx = np.argsort(X)
+        original_idx = np.argsort(sorted_idx) 
+
+        #Sorting the values in ascending order of features
+        X = X[sorted_idx] 
+        y = y[sorted_idx]
+        w = w[sorted_idx]
+        N = len(X) 
+
+        margin = 0 
+        error = 2 
+        p = 1
+      
+        for i in range(0,N):
+            threshold,margin = ((X[i] + X[i+1])/2,X[i+1]-X[i]) if i<N-1 else (X[i] - 1,0)
+
+            w_p_h = np.sum(w[(X>threshold) & (y == 1)])
+            w_n_h = np.sum(w[(X>threshold) & (y == 0)])
+
+            w_p_l = np.sum(w[(X<threshold) & (y == 1)])
+            w_n_l = np.sum(w[(X<threshold) & (y == 0)])
 
 
-    def predict(self, X):
-        # Make predictions based on the trained threshold and polarity
-        predictions = np.ones(len(X))
-        if self.polarity == 1:
-            predictions[X < self.threshold] = 0
-        else:
-            predictions[X >= self.threshold] = 0
-        return predictions
+            error_pos = w_p_l + w_n_h 
+            error_neg = w_n_l + w_p_h 
 
+            if error_pos < error_neg:
+                error = error_pos
+                p = 1
+            else:
+                error = error_neg
+                p = -1
+
+            if (self.error > error and error!=0) or ( (error == self.error) and (margin > self.margin) and (error!=0) ):
+                self.error = error 
+                self.margin = margin 
+                self.threshold = threshold
+                self.polarity = p
+        
+        
+        return self.error,self.margin
+    
+
+
+
+         
+        
+def best_stump(X,y,w): 
+
+        d = X.shape[0]
+        best_error = 2 
+        widest_margin = 0 
+        best_clf = None 
+        best_feature = 0 
+
+        for f in range(0,d):
+            
+            clf = DecissionStump(idx=f)
+            error,margin = clf.train(X[f],y,w)
+          #  print("error in line 89 is : {}".format(error))
+            if(error < best_error) or ((error == best_error) & (widest_margin < margin)):
+                best_error = error 
+                widest_margin = margin
+                best_clf = clf
+                best_feature = f
+
+        print("found threshold of iteration {}: {}".format(best_feature,best_clf.threshold))
+        print("Feature used: {}".format(best_feature))
+        return best_clf 
 
 class AdaBoost:
-    def __init__(T):
+    def __init__(self,T):
         self.T = T 
 
-    def best_stump(self,feature,labels):
-        best_error = 2
-        best_margin = 0
-        best_clf = None 
+    def run(self,X,labels): 
 
-        for i in range(0,feature):
-            clf = DecisionStump()
-            threshold,polarity,error,margin = clf.train(feature,labels)
-            if error<best_error:
-                best_error = error 
-                best_clf = clf
-            elif margin>best_margin:
-                best_margin = margin 
-                best_clf = clf 
-    
-  #  def train(self,data):
+        N,M = X.shape 
+        N = len(labels)
+        self.ht = np.empty(self.T,dtype=object) # For the weak learners
+        self.alphas = np.empty(self.T-1) 
+        print("Shape of features: {} x {}".format(N,M))
+
+        #len of negative and positive examples
+        l = np.sum(labels==0)
+        m = np.sum(labels==1)
+
+        w_p = 1/(2*m) #Weight of each pos 
+        w_n = 1/(2*l) #Weight of each pos 
+        wt =np.where(labels==1,w_p,w_n) #vector of weight according to lable 
+
+        for t in range(self.T-1):
+            print("iteration nr: {}".format(t))
+            wt/= np.sum(wt)  # Normalize the weights
 
 
-                
+            clf = best_stump(X,labels,wt) 
+            error = clf.error 
+            yhat = clf.predict(X)
 
+            print("Clf's threshold: {}".format(clf.threshold))
+            print("Clf's error: {}".format(clf.error))
+            print("Clf's feature index : {}".format(clf.idx))
+            alpha = np.log((1-error)/error)
+            
+            if(error == 0):
+                break
+
+            self.ht[t] = clf 
+            self.alphas[t] = alpha 
+
+            print("Sum of the new weights before: {}".format(np.sum(wt)))
+            print("Clf error: {}".format(clf.error))
+            print("wt.shape: {}".format(wt.shape))
+            print("pred.shape: {}".format(clf.predict(X).shape))
+            print("labels.shape: {}".format(labels.shape))
+            wt*= np.where(clf.predict(X)==labels, clf.error/(1-clf.error),1)
+            print("Sum of the new weights after: {}".format(np.sum(wt)))
+
+    def predict(self,X): 
+        ys = []
+        for alpha,classifier in zip(self.alphas,self.ht):
+            ys.append(alpha*classifier.predict(X))
         
+        return (np.sum(ys,axis=0) >= 0.5*sum(self.alphas))
 
-
-
+    def accuracy(self,predicted,true):
+        print("Predicted")
+        correct = np.sum(predicted == true)
+        total_samples = len(true)
+        accuracy = correct / total_samples
+        return accuracy
                 
 
 
