@@ -15,7 +15,7 @@ The Viola-Jones face detection algorithm is a widely recognized method for real-
 ## Progress
 
 - [x] Project initialization
-This is my first attempt at implemnting research paper into a functioning code, without the use of any major builtin packages.
+- This is my first attempt at implemnting research paper into a functioning code, without the use of any major builtin packages.
 As I'am doing this project while attending lectures, part-time job and on top of that trying to have some life i will only work on it on    
 holidays/ weekends etc.
 The main paper i used is the original viola-jones paper, besides this anaylsis of the code that provided pseudocode, which some of them i had       to reimplement and find more optimal soultions for.  
